@@ -90,19 +90,19 @@ router.post("/bank-transfer/create", authMiddleware, async (req, res) => {
     const amount = req.body?.amount;
 
     if (!dossierId) {
-      return res.status(400).json({ message: "Thiếu dossierId" });
+      return res.status(400).json({ message: "Thi?u dossierId" });
     }
 
     if (!BANK_CODE || !BANK_ACCOUNT || !BANK_ACCOUNT_NAME) {
       return res.status(500).json({
-        message: "Thiếu cấu hình ngân hàng/SePay",
+        message: "Thi?u c?u h?nh ng?n h?ng/SePay",
       });
     }
 
     const dossier = await findByCode(dossierId);
 
     if (!dossier) {
-      return res.status(404).json({ message: "Không tìm thấy hồ sơ" });
+      return res.status(404).json({ message: "Kh?ng t?m th?y h?" so" });
     }
 
     const payAmount = amountToVnd(amount ?? dossier.fee ?? 0);
@@ -150,7 +150,7 @@ router.post("/bank-transfer/create", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("[bank-transfer/create] error:", err);
     res.status(500).json({
-      message: err.message || "Lỗi tạo thanh toán chuyển khoản",
+      message: err.message || "L?-i t?o thanh to?n chuy?fn kho?n",
     });
   }
 });
@@ -170,7 +170,66 @@ router.get("/status/:dossierId", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("[payment-status] error:", err);
     res.status(500).json({
-      message: err.message || "Lỗi kiểm tra trạng thái thanh toán",
+      message: err.message || "L?-i ki?fm tra tr?ng th?i thanh to?n",
+    });
+  }
+});
+
+router.post("/mock-complete", authMiddleware, async (req, res) => {
+  try {
+    const dossierId = resolveDossierId(req.body);
+    if (!dossierId) {
+      return res.status(400).json({ message: "Thi?u dossierId" });
+    }
+
+    const dossier = await findByCode(dossierId);
+    if (!dossier) {
+      return res.status(404).json({ message: "Kh?ng t?m th?y h?" so" });
+    }
+
+    const payment = await getPaymentByDossierId(dossierId);
+    if (payment?.paymentId) {
+      await updatePayment(payment.paymentId, {
+        status: "PAID",
+        paymentStatus: "PAID",
+        paidAt: nowIso(),
+        transactionDate: nowIso(),
+        transactionId: payment.transactionId || `MOCK-${Date.now()}`,
+      });
+    }
+
+    const timeline = [
+      ...(dossier.timeline || dossier.history || []),
+      {
+        status: "PENDING",
+        action: "payment",
+        note: "Thanh to?n demo th?nh c?ng",
+        actor: req.user?.id || req.user?.email || "user",
+        createdAt: nowIso(),
+      },
+    ];
+
+    const updated = await updateByCode(dossier.dossierId || dossierId, {
+      ...dossier,
+      status: "PENDING",
+      paymentStatus: "PAID",
+      paidAt: nowIso(),
+      timeline,
+      history: timeline,
+      updatedAt: nowIso(),
+    });
+
+    res.json({
+      success: true,
+      message: "?? ?'?nh d?u thanh to?n th?nh c?ng",
+      dossierId,
+      paymentStatus: "PAID",
+      application: updated,
+    });
+  } catch (err) {
+    console.error("[mock-complete] error:", err);
+    res.status(500).json({
+      message: err.message || "L?-i c?p nh?t thanh to?n demo",
     });
   }
 });
@@ -183,7 +242,7 @@ router.post("/sepay-webhook", async (req, res) => {
     const isValidSignature = verifyWebhook(req);
 
     if (!isValidSignature) {
-      console.warn("[sepay-webhook] INVALID_SIGNATURE - vẫn xử lý để test luồng thanh toán");
+      console.warn("[sepay-webhook] INVALID_SIGNATURE - v?n x? l? ?'?f test lu?"ng thanh to?n");
     }
 
     const body = req.body || {};
@@ -288,9 +347,9 @@ router.post("/sepay-webhook", async (req, res) => {
       const timeline = [
         ...(dossier.timeline || []),
         {
-          status: "PAID",
+          status: "PENDING",
           action: "payment",
-          note: "Thanh toán chuyển khoản tự động qua SePay thành công",
+          note: "Thanh to?n chuy?fn kho?n t? ?'?Tng qua SePay th?nh c?ng",
           actor: "sepay",
           createdAt: nowIso(),
         },
@@ -298,6 +357,7 @@ router.post("/sepay-webhook", async (req, res) => {
 
       await updateByCode(payment.dossierId, {
         ...dossier,
+        status: "PENDING",
         paymentStatus: "PAID",
         updatedAt: nowIso(),
         timeline,
@@ -313,8 +373,8 @@ router.post("/sepay-webhook", async (req, res) => {
           notificationId: `NTF-${Date.now()}`,
           userId: dossier.userId,
           dossierId: dossierIdentifier,
-          title: "Thanh toán thành công",
-          message: `Hồ sơ ${dossierIdentifier} đã được thanh toán tự động.`,
+          title: "Thanh to?n th?nh c?ng",
+          message: `H?" so ${dossierIdentifier} ?'? ?'u?c thanh to?n t? ?'?Tng.`,
           createdAt: nowIso(),
         });
 

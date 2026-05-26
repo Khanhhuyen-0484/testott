@@ -6,7 +6,7 @@ const TABLE_NAME = process.env.DYNAMODB_SERVICE_APPLICATIONS_TABLE || process.en
 
 function getClient() { return getDynamoClient(); }
 
-const ALLOWED_STATUSES = new Set(["PENDING", "PROCESSING", "NEED_MORE", "COMPLETED", "REJECTED"]);
+const ALLOWED_STATUSES = new Set(["DRAFT", "PENDING", "PROCESSING", "NEED_MORE", "SUPPLEMENTED", "COMPLETED", "REJECTED"]);
 
 function normalizeTimeline(items) {
   if (!Array.isArray(items)) return [];
@@ -41,7 +41,7 @@ function normalizeApplication(application) {
     serviceId: String(application.serviceId || "").trim(),
     serviceName: String(application.serviceName || "").trim(),
     userId: String(application.userId || "").trim(),
-    status: ALLOWED_STATUSES.has(status) ? status : "PENDING",
+    status: ALLOWED_STATUSES.has(status) ? status : "DRAFT",
     paymentStatus: String(application.paymentStatus || "UNPAID").trim(),
     timeline,
     history: timeline,
@@ -66,7 +66,7 @@ async function writeAll() {
 
 async function create(application) {
   const item = normalizeApplication(application);
-  if (!item) throw new Error("Hồ sơ không hợp lệ");
+  if (!item) throw new Error("H?" so kh?ng h?p l??");
   const client = getClient();
   await client.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
   return item;

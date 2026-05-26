@@ -15,6 +15,10 @@ function parseDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function parseDateTime(value) {
+  return parseDate(value);
+}
+
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 function endOfDay(d) { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; }
 function startOfMonth(d) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
@@ -24,6 +28,13 @@ function inRange(date, fromDate, toDate) {
   if (fromDate && date < fromDate) return false;
   if (toDate && date > toDate) return false;
   return true;
+}
+
+function isPaidApplication(app) {
+  if (!app) return false;
+  const fee = Number(app.fee || 0);
+  const paymentStatus = String(app.paymentStatus || "").trim().toUpperCase();
+  return fee <= 0 || paymentStatus === "COMPLETED" || paymentStatus === "PAID";
 }
 
 async function getPayments() {
@@ -50,13 +61,14 @@ function normalizeDateRange(query = {}) {
 }
 
 async function getAdminStatistics(query = {}) {
-  const { fromDate, toDate, todayStart, monthStart } = normalizeDateRange(query);
-  const [applicationsRaw, services, paymentsRaw] = await Promise.all([readApplications(), listServices(), getPayments()]);
+  try {
+    const { fromDate, toDate, todayStart, monthStart } = normalizeDateRange(query);
+    const [applicationsRaw, services, paymentsRaw] = await Promise.all([readApplications(), listServices(), getPayments()]);
 
-  const applications = applicationsRaw.map((app) => ({ ...app, createdAtDate: parseDate(app.createdAt) || parseDate(app.updatedAt) || null }));
+    const applications = (Array.isArray(applicationsRaw) ? applicationsRaw : []).filter(isPaidApplication).map((app) => ({ ...app, createdAtDate: parseDate(app?.createdAt) || null }));
   const filteredApplications = applications.filter((app) => inRange(app.createdAtDate, fromDate, toDate));
-  const todayApplications = applications.filter((app) => inRange(app.createdAtDate, todayStart, endOfDay(todayStart)));
-  const monthApplications = applications.filter((app) => inRange(app.createdAtDate, monthStart, null));
+  const todayApplications = filteredApplications.filter((app) => inRange(app.createdAtDate, todayStart, endOfDay(todayStart)));
+  const monthApplications = filteredApplications.filter((app) => inRange(app.createdAtDate, monthStart, null));
 
   const byStatus = { pending: 0, processing: 0, needMore: 0, completed: 0, rejected: 0 };
   const statusMap = { PENDING: "pending", PROCESSING: "processing", NEED_MORE: "needMore", COMPLETED: "completed", REJECTED: "rejected" };
@@ -70,7 +82,7 @@ async function getAdminStatistics(query = {}) {
   filteredApplications.forEach((app) => {
     const serviceId = String(app.serviceId || "").trim() || "unknown";
     const service = serviceMap.get(serviceId) || {};
-    const current = byServiceMap.get(serviceId) || { serviceId, serviceName: service.name || app.serviceName || "Không rõ", total: 0, completed: 0, rejected: 0, completedRevenue: 0 };
+    const current = byServiceMap.get(serviceId) || { serviceId, serviceName: service.name || app.serviceName || "Kh?ng r?", total: 0, completed: 0, rejected: 0, completedRevenue: 0 };
     current.total += 1;
     const status = String(app.status || "").toUpperCase();
     if (status === "COMPLETED") current.completed += 1;
@@ -82,7 +94,7 @@ async function getAdminStatistics(query = {}) {
   paymentsRaw.forEach((p) => {
     const dossierId = String(p.dossierId || p.applicationId || p.applicationCode || "").trim();
     if (!dossierId) return;
-    const createdAt = toDate(p.createdAt);
+    const createdAt = parseDateTime(p.createdAt);
     if (!inRange(createdAt, fromDate, toDate)) return;
     const status = String(p.paymentStatus || p.status || "").toUpperCase();
     if (status !== "PAID") return;
@@ -99,7 +111,7 @@ async function getAdminStatistics(query = {}) {
   paymentsRaw.forEach((payment) => {
     const status = String(payment.paymentStatus || payment.status || "").toUpperCase();
     const amount = safeNumber(payment.amount);
-    const createdAt = toDate(payment.createdAt);
+    const createdAt = parseDateTime(payment.createdAt);
     if (!inRange(createdAt, fromDate, toDate)) return;
 
     if (status === "PAID") {
@@ -109,7 +121,7 @@ async function getAdminStatistics(query = {}) {
       const app = applications.find((x) => String(x.dossierId || x.id || x.dossierCode || x.applicationCode || x.applicationId || "") === dossierId);
       const serviceId = String(app?.serviceId || "unknown").trim() || "unknown";
       const service = serviceMap.get(serviceId) || {};
-      const serviceCurrent = revenueByServiceMap.get(serviceId) || { serviceId, serviceName: service.name || app?.serviceName || "Không rõ", revenue: 0 };
+      const serviceCurrent = revenueByServiceMap.get(serviceId) || { serviceId, serviceName: service.name || app?.serviceName || "Kh?ng r?", revenue: 0 };
       serviceCurrent.revenue += amount;
       revenueByServiceMap.set(serviceId, serviceCurrent);
 
@@ -129,22 +141,31 @@ async function getAdminStatistics(query = {}) {
   const revenueByService = Array.from(revenueByServiceMap.values()).sort((a, b) => b.revenue - a.revenue);
   const byMonth = Array.from(revenueByMonthMap.entries()).map(([month, revenue]) => ({ month, revenue })).sort((a, b) => a.month.localeCompare(b.month));
 
-  return {
-    overview: {
-      totalApplications: filteredApplications.length,
-      todayApplications: todayApplications.length,
-      monthApplications: monthApplications.length,
-    },
-    byStatus,
-    byService,
-    revenue: {
-      totalRevenue,
-      paidTransactions,
-      unpaidTransactions,
-      byService: revenueByService,
-      byMonth,
-    },
-  };
+    return {
+      overview: {
+        totalApplications: filteredApplications.length,
+        todayApplications: todayApplications.length,
+        monthApplications: monthApplications.length,
+      },
+      byStatus,
+      byService,
+      revenue: {
+        totalRevenue,
+        paidTransactions,
+        unpaidTransactions,
+        byService: revenueByService,
+        byMonth,
+      },
+    };
+  } catch (error) {
+    console.error("[statisticsStore.getAdminStatistics] error:", error?.name, error?.message, error);
+    return {
+      overview: { totalApplications: 0, todayApplications: 0, monthApplications: 0 },
+      byStatus: { pending: 0, processing: 0, needMore: 0, completed: 0, rejected: 0 },
+      byService: [],
+      revenue: { totalRevenue: 0, paidTransactions: 0, unpaidTransactions: 0, byService: [], byMonth: [] },
+    };
+  }
 }
 
 module.exports = { getAdminStatistics };

@@ -17,12 +17,7 @@ const path = require("path");
 const { createPresignedPut, isS3Configured } = require("../config/s3");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
-const AVATAR_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif"
-]);
+const AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 function normalizePublicUser(u) {
   if (!u) return null;
@@ -39,12 +34,12 @@ function normalizePublicUser(u) {
   };
 }
 
-// gửi OTP
+// g?i OTP
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
 
   if (!email || typeof email !== "string") {
-    return res.status(400).json({ message: "Email không hợp lệ" });
+    return res.status(400).json({ message: "Email kh�ng h?p l?" });
   }
 
   const otp = generateOtp();
@@ -54,24 +49,24 @@ exports.sendOtp = async (req, res) => {
     const html = otpEmail({ otp, minutes: 5 });
     await sendMail({
       to,
-      subject: "Mã OTP xác minh đăng ký",
+      subject: "M� OTP x�c minh ??ng k�",
       html,
-      text: `Mã OTP của bạn: ${otp} (hiệu lực 5 phút).`
+      text: `M� OTP c?a b?n: ${otp} (hi?u l?c 5 ph�t).`
     });
-    // Chỉ lưu OTP khi gửi mail thành công
+    // Ch? l?u OTP khi g?i mail th�nh c�ng
     setOtp(to, otp, 5 * 60_000);
   } catch (err) {
-    console.error("SEND OTP FAILED ❌", err?.message, err);
+    console.error("SEND OTP FAILED ?", err?.message, err);
     const smtp = serializeSmtpError(err);
     return res.status(500).json({
       message:
-        "Không gửi được email. Kiểm tra Gmail: bật 2FA, tạo App Password 16 ký tự, EMAIL_USER khớp tài khoản gửi.",
+        "Kh�ng g?i ???c email. Ki?m tra Gmail: b?t 2FA, t?o App Password 16 k� t?, EMAIL_USER kh?p t�i kho?n g?i.",
       error: err.message,
       smtp
     });
   }
 
-  res.json({ message: "OTP đã được gửi tới email" });
+  res.json({ message: "OTP ?� ???c g?i t?i email" });
 };
 
 // verify OTP
@@ -81,11 +76,11 @@ exports.verifyOtp = async (req, res) => {
   const result = verifyOtp(email, otp);
   if (!result.ok) {
     return res.status(400).json({
-      message: result.reason === "NOT_FOUND" ? "OTP không tồn tại hoặc đã hết hạn" : "OTP không đúng"
+      message: result.reason === "NOT_FOUND" ? "OTP kh�ng t?n t?i ho?c ?� h?t h?n" : "OTP kh�ng ?�ng"
     });
   }
 
-  res.json({ message: "OTP hợp lệ" });
+  res.json({ message: "OTP h?p l?" });
 };
 
 // register
@@ -94,26 +89,23 @@ exports.register = async (req, res) => {
     const { email, password, otp } = req.body;
 
     if (!email || typeof email !== "string") {
-      return res.status(400).json({ message: "Email không hợp lệ" });
+      return res.status(400).json({ message: "Email kh�ng h?p l?" });
     }
     const passwordCheck = validateRegisterPassword(password);
     if (!passwordCheck.ok) {
       return res.status(400).json({ message: passwordCheck.message });
     }
     if (!otp || typeof otp !== "string") {
-      return res.status(400).json({ message: "OTP không hợp lệ" });
+      return res.status(400).json({ message: "OTP kh�ng h?p l?" });
     }
 
     const emailNorm = String(email).trim().toLowerCase();
-    const fullName =
-      typeof req.body.fullName === "string" ? req.body.fullName.trim() : "";
-    const phone =
-      typeof req.body.phone === "string" ? req.body.phone.trim() : "";
-    const address =
-      typeof req.body.address === "string" ? req.body.address.trim() : "";
+    const fullName = typeof req.body.fullName === "string" ? req.body.fullName.trim() : "";
+    const phone = typeof req.body.phone === "string" ? req.body.phone.trim() : "";
+    const address = typeof req.body.address === "string" ? req.body.address.trim() : "";
 
     if (fullName.length < 2) {
-      return res.status(400).json({ message: "Họ và tên ít nhất 2 ký tự" });
+      return res.status(400).json({ message: "H? v� t�n �t nh?t 2 k� t?" });
     }
     let phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.startsWith("84") && phoneDigits.length >= 10) {
@@ -125,20 +117,18 @@ exports.register = async (req, res) => {
       phoneDigits = `0${phoneDigits}`;
     }
     if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      return res
-        .status(400)
-        .json({ message: "Số điện thoại không hợp lệ (ví dụ: 0912345678)" });
+      return res.status(400).json({ message: "S? ?i?n tho?i kh�ng h?p l? (v� d?: 0912345678)" });
     }
 
     const existing = await findByEmail(emailNorm);
     if (existing) {
-      return res.status(400).json({ message: "Email đã được đăng ký" });
+      return res.status(400).json({ message: "Email ?� ???c ??ng k�" });
     }
 
     const result = verifyOtp(emailNorm, otp);
     if (!result.ok) {
       return res.status(400).json({
-        message: result.reason === "NOT_FOUND" ? "OTP không tồn tại hoặc đã hết hạn" : "OTP sai"
+        message: result.reason === "NOT_FOUND" ? "OTP kh�ng t?n t?i ho?c ?� h?t h?n" : "OTP sai"
       });
     }
 
@@ -154,21 +144,18 @@ exports.register = async (req, res) => {
     consumeOtp(emailNorm);
 
     const { passwordHash: _, ...safe } = user;
-    res.json({
-      message: "Đăng ký thành công",
-      user: normalizePublicUser(safe)
-    });
+    res.json({ message: "??ng k� th�nh c�ng", user: normalizePublicUser(safe) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// thông tin tài khoản (JWT)
+// th�ng tin t�i kho?n (JWT)
 exports.me = async (req, res) => {
   try {
     const user = await findById(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: "Tài khoản không tồn tại" });
+      return res.status(404).json({ message: "T�i kho?n kh�ng t?n t?i" });
     }
     const { passwordHash, ...safe } = user;
     res.json(normalizePublicUser(safe));
@@ -177,22 +164,21 @@ exports.me = async (req, res) => {
   }
 };
 
-/** Cập nhật hồ sơ (tên, SĐT, địa chỉ, avatarUrl). */
+/** C?p nh?t h? s? (t�n, S?T, ??a ch?, avatarUrl). */
 exports.patchMe = async (req, res) => {
   try {
     const existing = await findById(req.user.id);
     if (!existing) {
-      return res.status(404).json({ message: "Tài khoản không tồn tại" });
+      return res.status(404).json({ message: "T�i kho?n kh�ng t?n t?i" });
     }
 
     const body = req.body || {};
     const patch = {};
 
     if ("fullName" in body) {
-      const fullName =
-        typeof body.fullName === "string" ? body.fullName.trim() : "";
+      const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
       if (fullName.length > 0 && fullName.length < 2) {
-        return res.status(400).json({ message: "Họ và tên ít nhất 2 ký tự" });
+        return res.status(400).json({ message: "H? v� t�n �t nh?t 2 k� t?" });
       }
       patch.fullName = fullName;
     }
@@ -203,9 +189,7 @@ exports.patchMe = async (req, res) => {
       } else {
         let phoneDigits = raw.replace(/\D/g, "");
         if (!phoneDigits) {
-          return res
-            .status(400)
-            .json({ message: "Số điện thoại phải chứa ít nhất các chữ số (vd: 0912345678)" });
+          return res.status(400).json({ message: "S? ?i?n tho?i ph?i ch?a �t nh?t c�c ch? s? (vd: 0912345678)" });
         }
         if (phoneDigits.startsWith("84") && phoneDigits.length >= 10) {
           phoneDigits = phoneDigits.slice(2);
@@ -214,17 +198,12 @@ exports.patchMe = async (req, res) => {
           phoneDigits = `0${phoneDigits}`;
         }
         if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-          return res
-            .status(400)
-            .json({ message: "Số điện thoại không hợp lệ (vd: 0912345678)" });
+          return res.status(400).json({ message: "S? ?i?n tho?i kh�ng h?p l? (vd: 0912345678)" });
         }
         patch.phone = phoneDigits;
       }
     }
-    if ("address" in body) {
-      patch.address =
-        typeof body.address === "string" ? body.address.trim() : "";
-    }
+    if ("address" in body) patch.address = typeof body.address === "string" ? body.address.trim() : "";
     if ("avatarUrl" in body) {
       const u = body.avatarUrl;
       if (u === null || u === "") {
@@ -232,12 +211,12 @@ exports.patchMe = async (req, res) => {
       } else if (typeof u === "string" && /^https?:\/\//i.test(u.trim())) {
         patch.avatarUrl = u.trim();
       } else {
-        return res.status(400).json({ message: "URL ảnh đại diện không hợp lệ" });
+        return res.status(400).json({ message: "URL ?nh ??i di?n kh�ng h?p l?" });
       }
     }
 
     if (Object.keys(patch).length === 0) {
-      return res.status(400).json({ message: "Không có thông tin cập nhật" });
+      return res.status(400).json({ message: "Kh�ng c� th�ng tin c?p nh?t" });
     }
 
     const updated = await updateUserById(req.user.id, patch);
@@ -248,23 +227,19 @@ exports.patchMe = async (req, res) => {
   }
 };
 
-/** Presigned PUT lên S3 cho ảnh đại diện. */
+/** Presigned PUT l�n S3 cho ?nh ??i di?n. */
 exports.presignAvatar = async (req, res) => {
   if (!isS3Configured()) {
     return res.status(503).json({
       message:
-        "Chưa cấu hình S3. Đặt S3_BUCKET (hoặc AWS_S3_BUCKET), AWS_REGION và AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY trong backend/.env."
+        "Ch?a c?u h�nh S3. ??t S3_BUCKET (ho?c AWS_S3_BUCKET), AWS_REGION v� AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY trong backend/.env."
     });
   }
   try {
-    const contentType = String(req.body?.contentType || "")
-      .trim()
-      .toLowerCase();
+    const contentType = String(req.body?.contentType || "").trim().toLowerCase();
     let fileName = String(req.body?.fileName || "avatar.jpg").trim();
     if (!AVATAR_TYPES.has(contentType)) {
-      return res.status(400).json({
-        message: "Chỉ chấp nhận ảnh JPEG, PNG, WebP hoặc GIF"
-      });
+      return res.status(400).json({ message: "Ch? ch?p nh?n ?nh JPEG, PNG, WebP ho?c GIF" });
     }
 
     const ext = path.extname(fileName).toLowerCase();
@@ -281,115 +256,67 @@ exports.presignAvatar = async (req, res) => {
     const userId = req.user.id;
     const key = `avatars/${userId}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}${safeExt}`;
 
-    const { uploadUrl, publicUrl } = await createPresignedPut({
-      key,
-      contentType,
-      expiresSec: 300
-    });
+    const { uploadUrl, publicUrl } = await createPresignedPut({ key, contentType, expiresSec: 300 });
 
-    res.json({
-      uploadUrl,
-      publicUrl,
-      method: "PUT",
-      headers: { "Content-Type": contentType }
-    });
+    res.json({ uploadUrl, publicUrl, method: "PUT", headers: { "Content-Type": contentType } });
   } catch (err) {
     console.error("presignAvatar", err);
-    res.status(500).json({
-      message: err.message || "Không tạo được link upload S3"
-    });
+    res.status(500).json({ message: err.message || "Kh�ng t?o ???c link upload S3" });
   }
 };
 
 // login
 exports.login = async (req, res) => {
   try {
-    console.log("[LOGIN DEBUG] Dữ liệu gửi từ Client:", req.body);
+    console.log("[LOGIN DEBUG] D? li?u g?i t? Client:", req.body);
     const { email, password } = req.body;
     if (!password || typeof password !== "string") {
-      return res.status(400).json({ message: "Email hoặc mật khẩu không đúng" });
+      return res.status(400).json({ message: "Email ho?c m?t kh?u kh�ng ?�ng" });
     }
 
     const user = await findByEmail(email);
-    console.log('[DEBUG] User từ DB:', user);
+    console.log("[DEBUG] User t? DB:", user);
     if (!user) {
-      return res.status(400).json({ message: "Email hoặc mật khẩu không đúng" });
+      return res.status(400).json({ message: "Email ho?c m?t kh?u kh�ng ?�ng" });
     }
 
     const currentPassword = String(user.passwordHash || "");
-    console.log("🔑 Password so sánh:", { nhap: password, trongDB: user.passwordHash });
+    console.log("?? Password so s�nh:", { nhap: password, trongDB: user.passwordHash });
     const isBcryptHash = /^\$2[aby]\$\d{2}\$/.test(currentPassword);
 
     let isMatch = false;
     if (isBcryptHash) {
       try {
         isMatch = await bcrypt.compare(password, currentPassword);
-        if (!isMatch) {
-          console.warn("[LOGIN DEBUG] bcrypt.compare thất bại: mật khẩu người dùng nhập không đúng");
-          if (user.passwordHash === password) {
-            console.warn("[LOGIN DEBUG] Fallback text thô thành công sau khi bcrypt.compare thất bại");
-            isMatch = true;
-          }
-        }
-      } catch (compareError) {
-        console.error(
-          "[LOGIN DEBUG] bcrypt.compare lỗi:",
-          compareError?.name,
-          compareError?.message
-        );
+        if (!isMatch && user.passwordHash === password) isMatch = true;
+      } catch {
         isMatch = user.passwordHash === password;
-        if (isMatch) {
-          console.warn("[LOGIN DEBUG] bcrypt.compare lỗi, fallback text thô thành công");
-        }
       }
     } else {
-      console.warn("[LOGIN DEBUG] Mật khẩu trong DB chưa được hash bcrypt, fallback so sánh text thô");
       isMatch = password === currentPassword;
-      if (!isMatch) {
-        console.warn("[LOGIN DEBUG] Sai mật khẩu (dữ liệu DB đang là text thô)");
-      }
       if (isMatch) {
         try {
           const nextHash = await bcrypt.hash(password, 10);
           await updatePasswordHashById(user.id, nextHash);
           user.passwordHash = nextHash;
         } catch (migrateError) {
-          console.error(
-            "[authController.login] Failed to migrate legacy password hash:",
-            migrateError?.name,
-            migrateError?.message,
-            migrateError
-          );
+          console.error("[authController.login] Failed to migrate legacy password hash:", migrateError?.message, migrateError);
         }
       }
     }
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+      return res.status(401).json({ message: "Email ho?c m?t kh?u kh�ng ?�ng" });
     }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("[LOGIN ERROR] JWT_SECRET not configured");
       return res.status(500).json({ message: "Server configuration error" });
     }
 
-    console.log("[LOGIN DEBUG] Creating JWT token with secret:", jwtSecret.substring(0, 3) + "...");
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role === "admin" ? "admin" : "citizen" }, jwtSecret, { expiresIn: "1d" });
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role === "admin" ? "admin" : "citizen"
-      },
-      jwtSecret,
-      { expiresIn: "1d" }
-    );
-
-    res.json({
-      message: "Login thành công",
-      token
-    });
+    res.json({ message: "Login th�nh c�ng", token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -400,77 +327,50 @@ exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || typeof email !== "string") {
-      return res.status(400).json({ message: "Email không hợp lệ" });
+      return res.status(400).json({ message: "Email kh�ng h?p l?" });
     }
 
     const user = await findByEmail(email);
-
-    // Do not reveal whether email exists
-    const safeOk = {
-      message:
-        "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu."
-    };
-
+    const safeOk = { message: "N?u email t?n t?i trong h? th?ng, ch�ng t�i ?� g?i h??ng d?n ??t l?i m?t kh?u." };
     if (!user) return res.json(safeOk);
 
     const token = jwt.sign(
-      {
-        sub: String(user.id),
-        email,
-        type: "password_reset",
-        nonce: crypto.randomBytes(8).toString("hex")
-      },
+      { sub: String(user.id), email, type: "password_reset", nonce: crypto.randomBytes(8).toString("hex") },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
 
-    const baseUrl =
-      process.env.FRONTEND_BASE_URL?.replace(/\/+$/, "") ||
-      "http://localhost:5173";
-    const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(
-      token
-    )}`;
+    const baseUrl = process.env.FRONTEND_BASE_URL?.replace(/\/+$/, "") || "http://localhost:5173";
+    const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
-    await sendMail({
-      to: email,
-      subject: "Yêu cầu đặt lại mật khẩu",
-      html: resetPasswordEmail({ resetUrl })
-    });
-
+    await sendMail({ to: email, subject: "Y�u c?u ??t l?i m?t kh?u", html: resetPasswordEmail({ resetUrl }) });
     return res.json(safeOk);
   } catch (err) {
-    console.error("FORGOT PASSWORD MAIL FAILED ❌", err?.message, err);
-    return res.status(500).json({
-      message: "Lỗi hệ thống",
-      error: err.message,
-      smtp: serializeSmtpError(err)
-    });
+    console.error("FORGOT PASSWORD MAIL FAILED ?", err?.message, err);
+    return res.status(500).json({ message: "L?i h? th?ng", error: err.message, smtp: serializeSmtpError(err) });
   }
 };
 
-/** Upload avatar trực tiếp từ backend lên S3 (không có CORS issues). */
+/** Upload avatar tr?c ti?p t? backend l�n S3 (kh�ng c� CORS issues). */
 exports.uploadAvatar = async (req, res) => {
   if (!isS3Configured()) {
     return res.status(503).json({
       message:
-        "Chưa cấu hình S3. Đặt AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY và S3_BUCKET trong backend/.env."
+        "Ch?a c?u h�nh S3. ??t AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY v� S3_BUCKET trong backend/.env."
     });
   }
 
   try {
     const file = req.file;
     if (!file) {
-      return res.status(400).json({ message: "Không có file ảnh" });
+      return res.status(400).json({ message: "Kh�ng c� file ?nh" });
     }
 
     const contentType = file.mimetype.toLowerCase();
     if (!AVATAR_TYPES.has(contentType)) {
-      return res.status(400).json({
-        message: "Chỉ chấp nhận ảnh JPEG, PNG, WebP hoặc GIF"
-      });
+      return res.status(400).json({ message: "Ch? ch?p nh?n ?nh JPEG, PNG, WebP ho?c GIF" });
     }
 
-    // Generate S3 key
     const ext = path.extname(file.originalname).toLowerCase();
     const safeExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext)
       ? ext
@@ -485,54 +385,34 @@ exports.uploadAvatar = async (req, res) => {
     const userId = req.user.id;
     const key = `avatars/${userId}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}${safeExt}`;
 
-    // Upload to S3
     const config = require("../config/s3").getConfig();
     const client = new S3Client({
       region: config.region,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-      }
+      credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY }
     });
 
-    const command = new PutObjectCommand({
-      Bucket: config.bucket,
-      Key: key,
-      Body: file.buffer,
-      ContentType: contentType
-    });
-
+    const command = new PutObjectCommand({ Bucket: config.bucket, Key: key, Body: file.buffer, ContentType: contentType });
     await client.send(command);
 
-    // Generate public URL
     const publicUrl = `https://${config.bucket}.s3.${config.region}.amazonaws.com/${key}`;
-
-    // Save to database
     const updated = await updateUserById(userId, { avatarUrl: publicUrl });
     const { passwordHash: _, ...safe } = updated;
 
-    res.json({
-      message: "Cập nhật ảnh đại diện thành công",
-      user: normalizePublicUser(safe)
-    });
+    res.json({ message: "C?p nh?t ?nh ??i di?n th�nh c�ng", user: normalizePublicUser(safe) });
   } catch (err) {
     console.error("uploadAvatar", err);
-    res.status(500).json({
-      message: err.message || "Không upload được ảnh"
-    });
+    res.status(500).json({ message: err.message || "Kh�ng upload ???c ?nh" });
   }
 };
 
-/** Xóa tài khoản */
+/** X�a t�i kho?n */
 exports.deleteMe = async (req, res) => {
   try {
     const success = await deleteUserById(req.user.id);
-    if (!success) {
-      return res.status(404).json({ message: "Tài khoản không tìm thấy" });
-    }
-    res.json({ message: "Tài khoản đã được xóa thành công" });
+    if (!success) return res.status(404).json({ message: "T�i kho?n kh�ng t�m th?y" });
+    res.json({ message: "T�i kho?n ?� ???c x�a th�nh c�ng" });
   } catch (err) {
     console.error("deleteMe", err);
-    res.status(500).json({ message: err.message || "Không thể xóa tài khoản" });
+    res.status(500).json({ message: err.message || "Kh�ng th? x�a t�i kho?n" });
   }
 };

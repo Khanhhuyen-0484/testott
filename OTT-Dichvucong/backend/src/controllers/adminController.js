@@ -22,7 +22,7 @@ exports.dashboard = async (req, res) => {
     const stats = await getDashboardStats();
     return res.json(stats);
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy dashboard" });
+    return res.status(500).json({ message: err.message || "L?-i l?y dashboard" });
   }
 };
 
@@ -32,17 +32,17 @@ exports.dossierList = async (req, res) => {
     const dossiers = await listDossiers(q);
     return res.json({ dossiers });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy danh sách hồ sơ" });
+    return res.status(500).json({ message: err.message || "L?-i l?y danh s?ch h?" so" });
   }
 };
 
 exports.dossierDetail = async (req, res) => {
   try {
     const dossier = await getDossierById(req.params.id);
-    if (!dossier) return res.status(404).json({ message: "Không tìm thấy hồ sơ" });
+    if (!dossier) return res.status(404).json({ message: "Kh?ng t?m th?y h?" so" });
     return res.json({ dossier });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy chi tiết hồ sơ" });
+    return res.status(500).json({ message: err.message || "L?-i l?y chi ti?t h?" so" });
   }
 };
 
@@ -52,10 +52,10 @@ exports.dossierDecision = async (req, res) => {
     const note = String(req.body?.note || "").trim();
     const actionMap = { receive: "PENDING", processing: "PROCESSING", request_more: "NEED_MORE", reject: "REJECTED", complete: "COMPLETED" };
     if (!Object.prototype.hasOwnProperty.call(actionMap, action)) {
-      return res.status(400).json({ message: "Hành động không hợp lệ" });
+      return res.status(400).json({ message: "H?nh ?'?Tng kh?ng h?p l??" });
     }
     if ((action === "request_more" || action === "reject") && note.length < 5) {
-      return res.status(400).json({ message: "Vui lòng nhập nội dung tối thiểu 5 ký tự" });
+      return res.status(400).json({ message: "Vui l?ng nh?p n?Ti dung t?'i thi?fu 5 k? t?" });
     }
 
     const dossier = await decideDossier({
@@ -64,10 +64,10 @@ exports.dossierDecision = async (req, res) => {
       note,
       adminEmail: req.user?.email
     });
-    if (!dossier) return res.status(404).json({ message: "Không tìm thấy hồ sơ" });
-    return res.json({ message: "Đã cập nhật quyết định", dossier });
+    if (!dossier) return res.status(404).json({ message: "Kh?ng t?m th?y h?" so" });
+    return res.json({ message: "?? c?p nh?t quy?t ?'?<nh", dossier });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi xử lý quyết định hồ sơ" });
+    return res.status(500).json({ message: err.message || "L?-i x? l? quy?t ?'?<nh h?" so" });
   }
 };
 
@@ -75,7 +75,7 @@ exports.updateDossierStatus = async (req, res) => {
   try {
     return await updateApplicationStatus(req, res);
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi cập nhật trạng thái hồ sơ" });
+    return res.status(500).json({ message: err.message || "L?-i c?p nh?t tr?ng th?i h?" so" });
   }
 };
 
@@ -90,7 +90,7 @@ exports.openDossierChat = async (req, res) => {
       }
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi mở hội thoại hồ sơ" });
+    return res.status(500).json({ message: err.message || "L?-i m?Y h?Ti tho?i h?" so" });
   }
 };
 
@@ -99,21 +99,21 @@ exports.supportConversations = async (req, res) => {
     const conversations = await listConversations();
     return res.json({ conversations });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy danh sách hội thoại" });
+    return res.status(500).json({ message: err.message || "L?-i l?y danh s?ch h?Ti tho?i" });
   }
 };
 
 exports.supportConversationDetail = async (req, res) => {
   try {
     const conversation = await getConversationById(req.params.id);
-    if (!conversation) return res.status(404).json({ message: "Không tìm thấy hội thoại" });
+    if (!conversation) return res.status(404).json({ message: "Kh?ng t?m th?y h?Ti tho?i" });
     const normalizedMessages = Array.isArray(conversation.messages)
       ? conversation.messages.map((msg) => {
           const fullName =
             msg?.sender?.fullName ||
             (msg?.from === "admin" || msg?.from === "staff"
-              ? "Admin hỗ trợ"
-              : conversation.citizenName || "Người dùng");
+              ? "Admin h?- tr?"
+              : conversation.citizenName || "Ngu?i d?ng");
           return {
             id: msg?.id || `msg-${Date.now()}`,
             from:
@@ -137,17 +137,17 @@ exports.supportConversationDetail = async (req, res) => {
       }
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy chi tiết hội thoại" });
+    return res.status(500).json({ message: err.message || "L?-i l?y chi ti?t h?Ti tho?i" });
   }
 };
 
 exports.supportSendMessage = async (req, res) => {
   try {
     const text = String(req.body?.text || "").trim();
-    if (!text) return res.status(400).json({ message: "Nội dung không được để trống" });
+    if (!text) return res.status(400).json({ message: "N?Ti dung kh?ng ?'u?c ?'?f tr?'ng" });
 
     const adminUser = await findById(req.user.id);
-    const fullName = adminUser?.fullName || "Admin hỗ trợ";
+    const fullName = adminUser?.fullName || "Admin h?- tr?";
     const avatarUrl = adminUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&size=128`;
     const sender = {
       id: req.user.id,
@@ -162,7 +162,7 @@ exports.supportSendMessage = async (req, res) => {
       sender
     });
     const conversation = await getConversationById(req.params.id);
-    if (!conversation) return res.status(404).json({ message: "Không tìm thấy hội thoại" });
+    if (!conversation) return res.status(404).json({ message: "Kh?ng t?m th?y h?Ti tho?i" });
 
     try {
       const io = getIo();
@@ -176,22 +176,22 @@ exports.supportSendMessage = async (req, res) => {
         });
       }
     } catch (socketError) {
-      console.warn("[Socket] Không thể gửi sự kiện supportConversationMessage:", socketError.message);
+      console.warn("[Socket] Kh?ng th?f g?i s? ki??n supportConversationMessage:", socketError.message);
     }
 
-    return res.json({ message: "Đã gửi tin nhắn", conversation });
+    return res.json({ message: "?? g?i tin nh?n", conversation });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi gửi tin nhắn hỗ trợ" });
+    return res.status(500).json({ message: err.message || "L?-i g?i tin nh?n h?- tr?" });
   }
 };
 
 exports.supportResolve = async (req, res) => {
   try {
     const conversation = await resolveConversation(req.params.id);
-    if (!conversation) return res.status(404).json({ message: "Không tìm thấy hội thoại" });
-    return res.json({ message: "Đã đánh dấu đã giải quyết", conversation });
+    if (!conversation) return res.status(404).json({ message: "Kh?ng t?m th?y h?Ti tho?i" });
+    return res.json({ message: "?? ?'?nh d?u ?'? gi?i quy?t", conversation });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi cập nhật trạng thái hội thoại" });
+    return res.status(500).json({ message: err.message || "L?-i c?p nh?t tr?ng th?i h?Ti tho?i" });
   }
 };
 
@@ -200,7 +200,7 @@ exports.aiHistory = async (req, res) => {
     const history = await getAiHistory();
     return res.json({ history });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy lịch sử AI" });
+    return res.status(500).json({ message: err.message || "L?-i l?y l?<ch s? AI" });
   }
 };
 
@@ -209,7 +209,7 @@ exports.aiRulesGet = async (req, res) => {
     const rulesText = await getAiRules();
     return res.json({ rulesText });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy bộ quy tắc AI" });
+    return res.status(500).json({ message: err.message || "L?-i l?y b?T quy t?c AI" });
   }
 };
 
@@ -217,12 +217,12 @@ exports.aiRulesUpdate = async (req, res) => {
   try {
     const rulesText = String(req.body?.rulesText || "").trim();
     if (rulesText.length < 10) {
-      return res.status(400).json({ message: "Bộ quy tắc cần tối thiểu 10 ký tự" });
+      return res.status(400).json({ message: "B?T quy t?c c?n t?'i thi?fu 10 k? t?" });
     }
     const saved = await updateAiRules(rulesText, req.user?.email);
-    return res.json({ message: "Cập nhật bộ quy tắc thành công", rulesText: saved });
+    return res.json({ message: "C?p nh?t b?T quy t?c th?nh c?ng", rulesText: saved });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi cập nhật bộ quy tắc AI" });
+    return res.status(500).json({ message: err.message || "L?-i c?p nh?t b?T quy t?c AI" });
   }
 };
 
@@ -231,7 +231,7 @@ exports.getStatistics = async (req, res) => {
     const stats = await getAdminStatistics({ fromDate: req.query.fromDate, toDate: req.query.toDate });
     return res.json(stats);
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi lấy thống kê" });
+    return res.status(500).json({ message: err.message || "L?-i l?y th?'ng k?" });
   }
 };
 
@@ -241,21 +241,21 @@ exports.updateUserRole = async (req, res) => {
     const role = String(req.body?.role || "").trim().toLowerCase();
 
     if (!userId) {
-      return res.status(400).json({ message: "ID người dùng không hợp lệ" });
+      return res.status(400).json({ message: "ID ngu?i d?ng kh?ng h?p l??" });
     }
 
     if (!["citizen", "admin"].includes(role)) {
-      return res.status(400).json({ message: "Vai trò không hợp lệ. Phải là 'citizen' hoặc 'admin'" });
+      return res.status(400).json({ message: "Vai tr? kh?ng h?p l??. Ph?i l? 'citizen' ho?c 'admin'" });
     }
 
     const user = await findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+      return res.status(404).json({ message: "Kh?ng t?m th?y ngu?i d?ng" });
     }
 
     const updatedUser = await updateUserRole(userId, role);
-    return res.json({ message: `Cập nhật vai trò người dùng thành công`, user: updatedUser });
+    return res.json({ message: `C?p nh?t vai tr? ngu?i d?ng th?nh c?ng`, user: updatedUser });
   } catch (err) {
-    return res.status(500).json({ message: err.message || "Lỗi cập nhật vai trò người dùng" });
+    return res.status(500).json({ message: err.message || "L?-i c?p nh?t vai tr? ngu?i d?ng" });
   }
 };

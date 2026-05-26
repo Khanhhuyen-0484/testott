@@ -4,16 +4,16 @@ const { getDynamoClient } = require("../config/dynamoClient");
 const TABLE_NAME = process.env.DYNAMODB_SERVICE_CATEGORIES_TABLE || process.env.SERVICE_CATEGORIES_TABLE || "ServiceCategories";
 
 const DEFAULT_CATEGORY_NAMES = [
-  "Hộ tịch",
-  "Đất đai",
-  "Xây dựng",
-  "Doanh nghiệp",
-  "Giao thông vận tải",
-  "Giáo dục",
-  "Y tế",
-  "Lao động - Thương binh và Xã hội",
-  "Thuế - Tài chính",
-  "Công an"
+  "H?T t?<ch",
+  "??t ?'ai",
+  "X?y d?ng",
+  "Doanh nghi??p",
+  "Giao th?ng v?n t?i",
+  "Gi?o d?c",
+  "Y t?",
+  "Lao ?'?Tng - Thuong binh v? X? h?Ti",
+  "Thu? - T?i ch?nh",
+  "C?ng an"
 ];
 
 function getClient() { return getDynamoClient(); }
@@ -69,7 +69,7 @@ async function getCategoryById(categoryId) {
 
 async function upsertCategory(category) {
   const normalized = normalizeCategory(category);
-  if (!normalized) throw new Error("Danh mục không hợp lệ");
+  if (!normalized) throw new Error("Danh m?c kh?ng h?p l??");
   const client = getClient();
   await client.send(new PutCommand({ TableName: TABLE_NAME, Item: normalized }));
   return normalized;

@@ -10,6 +10,8 @@ const {
   getApplicationByCode,
   getMyApplications,
   trackApplication,
+  getMyServiceNotifications,
+  getApplicationPayments,
   payForApplication,
   adminCreateService,
   adminUpdateService,
@@ -20,6 +22,8 @@ const {
 
 router.get("/", getServices);
 router.get("/my-applications", authMiddleware, getMyApplications);
+router.get("/notifications", authMiddleware, getMyServiceNotifications);
+router.get("/payments/:applicationId", authMiddleware, getApplicationPayments);
 router.get("/application/code/:applicationCode", getApplicationByCode);
 router.get("/track/:applicationCode", trackApplication);
 router.get("/application/:applicationCode/result", authMiddleware, downloadApplicationResult);

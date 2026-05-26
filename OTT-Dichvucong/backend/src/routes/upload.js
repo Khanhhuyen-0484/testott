@@ -10,7 +10,7 @@ const { normalizeFileName, buildPublicUrl } = require("../store/attachmentStore"
 const BUCKET = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET;
 const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "ap-southeast-1";
 
-console.log("[upload.js] BUCKET:", BUCKET || "❌ CHƯA SET");
+console.log("[upload.js] BUCKET:", BUCKET || "?O CHUA SET");
 console.log("[upload.js] REGION:", REGION);
 
 const s3 = new S3Client({
@@ -25,8 +25,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/file", authMiddleware, upload.single("file"), async (req, res, next) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "Thiếu file upload" });
-    if (!BUCKET) return res.status(500).json({ message: "S3_BUCKET chưa được cấu hình trong .env" });
+    if (!req.file) return res.status(400).json({ message: "Thi?u file upload" });
+    if (!BUCKET) return res.status(500).json({ message: "S3_BUCKET chua ?'u?c c?u h?nh trong .env" });
 
     const safeName = normalizeFileName(req.file.originalname || `file-${Date.now()}`);
     const key = `attachments/${Date.now()}-${safeName}`;
@@ -41,7 +41,7 @@ router.post("/file", authMiddleware, upload.single("file"), async (req, res, nex
     const publicUrl = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
 
     res.json({
-      message: "Upload file thành công",
+      message: "Upload file th?nh c?ng",
       attachment: {
         fileName: safeName,
         mimeType: req.file.mimetype,
@@ -63,23 +63,23 @@ router.post("/presign", authMiddleware, async (req, res, next) => {
     const { key, contentType } = req.body;
 
     if (!key || !contentType) {
-      return res.status(400).json({ message: "Thiếu key hoặc contentType" });
+      return res.status(400).json({ message: "Thi?u key ho?c contentType" });
     }
 
     if (!BUCKET) {
-      return res.status(500).json({ message: "S3_BUCKET chưa được cấu hình trong .env — không thể upload." });
+      return res.status(500).json({ message: "S3_BUCKET chua ?'u?c c?u h?nh trong .env ??" kh?ng th?f upload." });
     }
 
     const allowedPrefixes = ["chat-media/", "avatars/"];
     if (!allowedPrefixes.some((p) => key.startsWith(p))) {
-      return res.status(403).json({ message: "Key không hợp lệ." });
+      return res.status(403).json({ message: "Key kh?ng h?p l??." });
     }
 
     const command = new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType });
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
     const publicUrl = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
 
-    console.log(`[upload/presign] ✅ key=${key} → ${publicUrl}`);
+    console.log(`[upload/presign] ?o. key=${key} ??' ${publicUrl}`);
     res.json({ uploadUrl, publicUrl, key });
   } catch (err) {
     next(err);
